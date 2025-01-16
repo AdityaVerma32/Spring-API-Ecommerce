@@ -58,4 +58,8 @@ public class UserPrincipal implements UserDetails {
     public boolean isEnabled() {
         return true;  // Returning true to indicate that the user account is enabled
     }
+
+    public Integer getUserId(){
+        return user.getId();
+    }
 }

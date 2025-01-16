@@ -1,5 +1,6 @@
 package com.project.e_commerce.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;  // JPA annotations for entity mapping
 import jakarta.validation.constraints.Email;  // For validating email format
 import jakarta.validation.constraints.NotBlank;  // For checking non-blank strings
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.Size;  // For size validation on string fi
 import java.time.LocalDateTime;  // For handling date and time
 
 @Entity  // Marks the class as a JPA entity, which will be mapped to a database table
+@JsonIgnoreProperties({"password"})  // This will ignore the password field for serialization
 public class Users {
 
     @Id  // Marks this field as the primary key

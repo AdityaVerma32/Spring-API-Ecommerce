@@ -34,10 +34,10 @@
             return http.csrf(customizer -> customizer.disable())
                     .authorizeHttpRequests(request -> request
                             // Public Endpoints (No Authentication Required)
-                            .requestMatchers("auth/register","auth/login","auth/google").permitAll()
+                            .requestMatchers("auth/register","auth/login","auth/google","/products/**").permitAll()
 
                             // User-Specific Endpoints (Authentication Required)
-                            .requestMatchers("/products/**").hasRole("USER")
+                            .requestMatchers("/cart/**","/orders/**","/shipping/**").hasRole("USER")
 
                             // Admin-Specific Endpoints (Authentication & Role Required)
                             .requestMatchers("/admin/**").hasRole("ADMIN")
