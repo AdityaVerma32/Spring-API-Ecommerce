@@ -7,6 +7,7 @@ import com.project.e_commerce.Repo.*;
 import com.project.e_commerce.Utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,16 +25,24 @@ public class OrdersService {
     private final OrdersRepo ordersRepo;
     private final OrdersItemsRepo ordersItemsRepo;
     private final ProductRepo productRepo;
+    private final UserRepo userRepo;
+
+    private Integer getUserId() {
+        UserPrincipal userPrincipal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Integer userId = userPrincipal.getUserId();
+        return userId;
+    }
 
     // Constructor to initialize the repositories
     public OrdersService(OrdersItemsRepo ordersItemsRepo, CartRepo cartRepo, CartItemsRepo cartItemsRepo,
-                         ShippingAddressRepo shippingAddressRepo, OrdersRepo ordersRepo, ProductRepo productRepo) {
+                         ShippingAddressRepo shippingAddressRepo, OrdersRepo ordersRepo, ProductRepo productRepo, UserRepo userRepo) {
         this.ordersItemsRepo = ordersItemsRepo;
         this.cartRepo = cartRepo;
         this.cartItemsRepo = cartItemsRepo;
         this.shippingAddressRepo = shippingAddressRepo;
         this.ordersRepo = ordersRepo;
         this.productRepo = productRepo;
+        this.userRepo = userRepo;
     }
 
     // Method to create an order with transactional support to ensure atomicity
@@ -151,5 +160,10 @@ public class OrdersService {
             // 6. Handle any exceptions that occur during the delete operation
             return new ResponseEntity<>(new ApiResponse<>(false,"An error occurred while deleting the order: " + e.getMessage(),null), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    public ResponseEntity<ApiResponse<Object>> fetchOrders() {
+        Optional<Users> user = userRepo.findById(getUserId());
+        return new ResponseEntity<>(new ApiResponse<>(true,"Orders Details", ordersRepo.findByUser(user.get())),HttpStatus.OK);
     }
 }

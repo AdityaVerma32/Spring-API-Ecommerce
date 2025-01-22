@@ -29,5 +29,10 @@ public class OrdersController {
         return ordersService.deleteOrder(orderId);
     }
 
+    @GetMapping("get-orders")
+    public ResponseEntity<ApiResponse<Object>> fetchOrders(){
+        return ordersService.fetchOrders();
+    }
+
 
 }

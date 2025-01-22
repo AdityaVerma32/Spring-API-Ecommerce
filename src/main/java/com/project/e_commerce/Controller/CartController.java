@@ -33,10 +33,8 @@ public class CartController {
     }
 
     @GetMapping("products")
-    public ResponseEntity<ApiResponse<Object>> getCartProducts(@RequestHeader("Authorization") String authorization) {
-        System.out.println("Inside the Controller: "+authorization);
-        return new ResponseEntity<>(new ApiResponse<>(true,"Inside getting cart Items",null),HttpStatus.OK);
-//        return cartService.getCartProducts(getUserId());
+    public ResponseEntity<ApiResponse<Object>> getCartProducts() {
+        return cartService.getCartProducts(getUserId());
     }
 
     @PostMapping("update-product/{id}")

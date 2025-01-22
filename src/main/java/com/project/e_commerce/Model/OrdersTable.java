@@ -1,5 +1,6 @@
 package com.project.e_commerce.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.project.e_commerce.Enums.OrderStatus;
 import com.project.e_commerce.Enums.PaymentMethod;
 import jakarta.persistence.*;
@@ -17,6 +18,7 @@ public class OrdersTable {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"password"})
     private Users user;
 
     @ManyToOne

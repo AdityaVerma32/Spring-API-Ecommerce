@@ -1,5 +1,6 @@
 package com.project.e_commerce.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import java.io.Serializable;
@@ -25,6 +26,7 @@ public class ShippingAddress implements Serializable {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
+    @JsonIgnoreProperties({"password"})
     private Users user;
 
     private LocalDateTime createdAt;
