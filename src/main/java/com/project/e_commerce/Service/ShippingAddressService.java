@@ -5,6 +5,7 @@ import com.project.e_commerce.Model.UserPrincipal;
 import com.project.e_commerce.Model.Users;
 import com.project.e_commerce.Repo.ShippingAddressRepo;
 import com.project.e_commerce.Repo.UserRepo;
+import com.project.e_commerce.Utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,7 +32,7 @@ public class ShippingAddressService {
         return userId;
     }
 
-    public ResponseEntity<?> createNewAddress(ShippingAddress shippingAddress) {
+    public ResponseEntity<ApiResponse<Object>> createNewAddress(ShippingAddress shippingAddress) {
         Optional<Users> user = userRepo.findById(getUserId());
         ShippingAddress shippingAddress1 = new ShippingAddress();
         shippingAddress1.setStreet(shippingAddress.getStreet());
@@ -42,21 +43,21 @@ public class ShippingAddressService {
         shippingAddress1.setUser(user.get());
 
         ShippingAddress savedShippingAddress = shippingAddressRepo.save(shippingAddress1);
-        return new ResponseEntity<>("Address Saved Successfully.", HttpStatus.CREATED);
+        return new ResponseEntity<>(new ApiResponse<>(true,"Address Saved Successfully.",savedShippingAddress), HttpStatus.CREATED);
 
     }
 
-    public ResponseEntity<?> deleteAddress(Integer id) {
+    public ResponseEntity<ApiResponse<Object>> deleteAddress(Integer id) {
         Optional<ShippingAddress> shippingAddress = shippingAddressRepo.findById(id);
         if(shippingAddress.isPresent()){
             shippingAddressRepo.deleteById(id);
-            return new ResponseEntity<>("Address Deleted Successfully", HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse<>(true,"Address Deleted Successfully",null), HttpStatus.OK);
         }else{
-            return new ResponseEntity<>("Address not Found", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ApiResponse<>(false,"Address not Found",null), HttpStatus.BAD_REQUEST);
         }
     }
 
-    public ResponseEntity<?> updateAddress(Integer id, ShippingAddress shippingAddress) {
+    public ResponseEntity<ApiResponse<Object>> updateAddress(Integer id, ShippingAddress shippingAddress) {
         Optional<ShippingAddress> shippingAddress1 = shippingAddressRepo.findById(id);
         if(shippingAddress1.isPresent()){
             shippingAddress1.get().setState(shippingAddress.getState());
@@ -64,16 +65,16 @@ public class ShippingAddressService {
             shippingAddress1.get().setCity(shippingAddress.getCity());
             shippingAddress1.get().setPostalCode(shippingAddress.getPostalCode());
             shippingAddress1.get().setCountry(shippingAddress.getCountry());
-            shippingAddressRepo.save(shippingAddress1.get());
-            return new ResponseEntity<>("Address Updated Successfully", HttpStatus.OK);
+            ShippingAddress updatedShippingAddress = shippingAddressRepo.save(shippingAddress1.get());
+            return new ResponseEntity<>(new ApiResponse<>(true,"Address Updated Successfully",updatedShippingAddress), HttpStatus.OK);
         }else{
-            return new ResponseEntity<>("Address not Found", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ApiResponse<>(false,"Address not Found",null), HttpStatus.BAD_REQUEST);
         }
     }
 
-    public ResponseEntity<?> fetchAllShippingAddress() {
+    public ResponseEntity<ApiResponse<Object>> fetchAllShippingAddress() {
         Optional<Users> user = userRepo.findById(getUserId());
         List<ShippingAddress> addresses = shippingAddressRepo.findByUser(user.get());
-        return new ResponseEntity<>(addresses,HttpStatus.OK);
+        return new ResponseEntity<>(new ApiResponse<>(true,"Addresses",addresses),HttpStatus.OK);
     }
 }

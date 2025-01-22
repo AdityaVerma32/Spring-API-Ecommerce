@@ -1,25 +1,19 @@
 package com.project.e_commerce.Model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-public class Cart {
+public class PaymentDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id" , nullable = false)
-    @JsonIgnoreProperties({"password","email","role","firstName","lastName","createdAt","updatedAt"})
-    private Users user;
-
-    @Column(nullable = false)
-    private BigDecimal totalPrice;
+    @ManyToOne
+    @JoinColumn(name = "order_id")
+    private OrdersTable order;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -37,12 +31,11 @@ public class Cart {
         this.updatedAt = LocalDateTime.now();  // Updates the timestamp whenever the entity is updated
     }
 
-    public Cart() {
+    public PaymentDetails(OrdersTable order) {
+        this.order = order;
     }
 
-    public Cart(Users user, BigDecimal totalPrice) {
-        this.user = user;
-        this.totalPrice = totalPrice;
+    public PaymentDetails() {
     }
 
     public Integer getId() {
@@ -53,20 +46,12 @@ public class Cart {
         this.id = id;
     }
 
-    public Users getUser() {
-        return user;
+    public OrdersTable getOrder() {
+        return order;
     }
 
-    public void setUser(Users user) {
-        this.user = user;
-    }
-
-    public BigDecimal getTotalPrice() {
-        return totalPrice;
-    }
-
-    public void setTotalPrice(BigDecimal totalPrice) {
-        this.totalPrice = totalPrice;
+    public void setOrder(OrdersTable order) {
+        this.order = order;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -83,16 +68,5 @@ public class Cart {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    @Override
-    public String toString() {
-        return "Cart{" +
-                "id=" + id +
-                ", user=" + user +
-                ", totalPrice=" + totalPrice +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
-                '}';
     }
 }

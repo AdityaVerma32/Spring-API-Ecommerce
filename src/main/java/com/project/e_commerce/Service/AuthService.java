@@ -4,6 +4,7 @@ import com.project.e_commerce.JWT.JWTService;
 import com.project.e_commerce.Model.LoginUser;
 import com.project.e_commerce.Model.Users;
 import com.project.e_commerce.Repo.UserRepo;
+import com.project.e_commerce.Utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -35,22 +36,27 @@ public class AuthService {
     }
 
     // Register a new user and save to the database
-    public ResponseEntity<String> registerUser(Users user) {
+    public ResponseEntity<ApiResponse<Users>> registerUser(Users user) {
         try {
             // Encrypt the user's password before saving
+            System.out.println(user.toString());
             user.setPassword(encoder.encode(user.getPassword()));
             Users savedUser = userRepo.save(user);  // Save user to the repository
 
             emailService.sendRegistrationEmail(savedUser.getEmail(), savedUser.getFirstName());
-            return new ResponseEntity<>("Registration Successfully", HttpStatus.OK);
+
+            ApiResponse apiResponse = new ApiResponse(true,"Registration Successfully",savedUser);
+
+            return new ResponseEntity<>(apiResponse, HttpStatus.OK);
         } catch (Exception e) {
             // Catch any exception and send a bad request response
-            return new ResponseEntity<>("Error during registration: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            ApiResponse apiResponse = new ApiResponse(false,"Error during registration: " + e.getMessage(),null);
+            return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
         }
     }
 
     // Authenticate and log in the user
-    public ResponseEntity<?> loginUser(LoginUser loginUser) {
+    public ResponseEntity<ApiResponse<Object>> loginUser(LoginUser loginUser) {
         try {
             // Authenticate the user with the provided email and password
             Authentication authentication = authenticate.authenticate(
@@ -67,19 +73,23 @@ public class AuthService {
                         .findFirst()
                         .orElse("UNKNOWN");
 
+                // Get User Details
+                Users user = userRepo.findByEmail(loginUser.getEmail());
+
                 // Prepare the response with the token and role
                 Map<String, Object> response = new HashMap<>();
                 response.put("token", token);
                 response.put("role", role);
+                response.put("User",user);
 
-                return new ResponseEntity<>(response, HttpStatus.OK);
+                return new ResponseEntity<>( new ApiResponse<>(true, "Login Successfully",response), HttpStatus.OK);
             } else {
                 // If authentication fails, return an unauthorized response
-                return new ResponseEntity<>("Unauthorized Access", HttpStatus.UNAUTHORIZED);
+                return new ResponseEntity<>(new ApiResponse<>(false,"Unauthorized Access", null), HttpStatus.UNAUTHORIZED);
             }
         } catch (Exception e) {
             // Catch any authentication-related exceptions and return an error response
-            return new ResponseEntity<>("Authentication error: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ApiResponse<>(false, "Authentication error: " + e.getMessage(), null), HttpStatus.BAD_REQUEST);
         }
     }
 

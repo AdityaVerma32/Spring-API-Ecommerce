@@ -4,6 +4,7 @@ import com.project.e_commerce.Model.LoginUser;
 import com.project.e_commerce.Model.Users;
 import com.project.e_commerce.Service.AuthService;
 import com.project.e_commerce.Service.TokenBlacklistedService;
+import com.project.e_commerce.Utils.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -30,12 +31,12 @@ public class AuthController {
      * @return ResponseEntity with success or failure message and HTTP status.
      */
     @PostMapping("register")
-    public ResponseEntity<String> registerUser(@Valid @RequestBody Users user) {
+    public ResponseEntity<ApiResponse<Users>> registerUser(@RequestBody Users user) {
         try {
             return authService.registerUser(user);
         } catch (Exception e) {
             // Handle unexpected exceptions
-            return new ResponseEntity<>("An unexpected error occurred during registration: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse<>(true, "An unexpected error occurred during registration: " + e.getMessage(), null), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -46,15 +47,15 @@ public class AuthController {
      * @return ResponseEntity with the generated token or an error message.
      */
     @PostMapping("login")
-    public ResponseEntity<?> loginUser(@RequestBody LoginUser loginUser) {
+    public ResponseEntity<ApiResponse<Object>> loginUser(@RequestBody LoginUser loginUser) {
         try {
             return authService.loginUser(loginUser);
         } catch (IllegalArgumentException e) {
             // Handle invalid login details
-            return new ResponseEntity<>("Invalid username or password: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ApiResponse<>(false,"Invalid username or password: " + e.getMessage(), null), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             // Handle unexpected exceptions
-            return new ResponseEntity<>("An unexpected error occurred during login: " + e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse<>(false, "An unexpected error occurred during login: " + e.getMessage(),null),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -65,13 +66,12 @@ public class AuthController {
      * @return String message indicating success or failure.
      */
     @PostMapping("logout")
-    public ResponseEntity<String> logoutUser(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Object>> logoutUser(HttpServletRequest request) {
         try {
             return tokenBlacklistedService.logoutUser(request);
         } catch (Exception e) {
             // Log the error and return a meaningful message
-            System.err.println("Error during logout: " + e.getMessage());
-            return new ResponseEntity<>("An unexpected error occurred during logout. Please try again.",HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse<>(false,"An unexpected error occurred during logout. Please try again.",null),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

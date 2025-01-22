@@ -10,7 +10,6 @@ import jakarta.validation.constraints.Size;  // For size validation on string fi
 import java.time.LocalDateTime;  // For handling date and time
 
 @Entity  // Marks the class as a JPA entity, which will be mapped to a database table
-@JsonIgnoreProperties({"password"})  // This will ignore the password field for serialization
 public class Users {
 
     @Id  // Marks this field as the primary key
@@ -24,20 +23,16 @@ public class Users {
     @Size(min = 2, max = 50, message = "Email Should range between 2 to 100")  // Validates email length
     private String email;
 
-    @NotNull(message = "Password is Mandatory")  // Ensures password is not null
     @NotBlank(message = "Password is Mandatory")  // Ensures password is not blank
     private String password;
 
-    @NotNull(message = "Role is Mandatory")  // Ensures role is not null
     @NotBlank(message = "Role is Mandatory")  // Ensures role is not blank
     private String role;
 
-    @NotNull(message = "First Name is Mandatory")  // Ensures first name is not null
     @NotBlank(message = "First Name is Mandatory")  // Ensures first name is not blank
     @Size(min = 2, max = 50, message = "Length Should range between 2 to 50")  // Validates first name length
     private String firstName;
 
-    @NotNull(message = "Last Name is Mandatory")  // Ensures last name is not null
     @NotBlank(message = "Last Name is Mandatory")  // Ensures last name is not blank
     @Size(min = 2, max = 50, message = "Length Should range between 2 to 50")  // Validates last name length
     private String lastName;

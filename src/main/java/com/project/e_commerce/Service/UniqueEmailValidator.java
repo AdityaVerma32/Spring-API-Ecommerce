@@ -35,3 +35,29 @@
 //        return !userRepo.existsByEmail(email);
 //    }
 //}
+
+
+//import java.io.IOException;
+//import java.io.InputStream;
+//import java.net.HttpURLConnection;
+//import java.net.URL;
+//import java.util.Scanner;
+//
+//class Main {
+//
+//    public static void main(String[] args) throws IOException {
+//        URL url = new URL("https://api-m.sandbox.paypal.com/v2/payments/authorizations/0VF52814937998046");
+//        HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
+//        httpConn.setRequestMethod("GET");
+//
+//        httpConn.setRequestProperty("Content-Type", "application/json");
+//        httpConn.setRequestProperty("Authorization", "Bearer A21AAFs9YK9gWL6Vl6AqeoPtm-nf6JmtPOwAc8kfzHVdeigPEhrOJLCvbeIt3fJ4NKvyZo_iWic7sC3RIQrVUdu7igagcuMVQ");
+//
+//        InputStream responseStream = httpConn.getResponseCode() / 100 == 2
+//                ? httpConn.getInputStream()
+//                : httpConn.getErrorStream();
+//        Scanner s = new Scanner(responseStream).useDelimiter("\\A");
+//        String response = s.hasNext() ? s.next() : "";
+//        System.out.println(response);
+//    }
+//}

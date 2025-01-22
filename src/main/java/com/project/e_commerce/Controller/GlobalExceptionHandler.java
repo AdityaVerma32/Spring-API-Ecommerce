@@ -1,5 +1,6 @@
 package com.project.e_commerce.Controller;
 
+import com.project.e_commerce.Utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -20,7 +21,7 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity with error messages and HTTP status BAD_REQUEST.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
 
         ex.getBindingResult().getFieldErrors().forEach((error) -> {
@@ -29,7 +30,7 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
 
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ApiResponse<>(false,"Some Error Occurred",errors), HttpStatus.BAD_REQUEST);
     }
 
     /**
@@ -39,9 +40,9 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity with a user-friendly error message and HTTP status UNAUTHORIZED.
      */
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<String> handleBadCredentialsException(BadCredentialsException ex) {
+    public ResponseEntity<ApiResponse<Object>> handleBadCredentialsException(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body("Invalid username or password. Please check your credentials and try again.");
+                .body(new ApiResponse<>(false,"Invalid username or password. Please check your credentials and try again.",null));
     }
 
     /**
@@ -51,7 +52,7 @@ public class GlobalExceptionHandler {
      * @return ResponseEntity with a generic error message and HTTP status INTERNAL_SERVER_ERROR.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleGlobalException(Exception ex) {
-        return new ResponseEntity<>("An unexpected Exception Occurred: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<ApiResponse> handleGlobalException(Exception ex) {
+        return new ResponseEntity<>(new ApiResponse(false,"An unexpected Exception Occurred: " + ex.getMessage(),null), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

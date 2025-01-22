@@ -21,10 +21,28 @@ public class CloudinaryService {
      * @return The secure URL of the uploaded image.
      * @throws IOException if an error occurs during upload.
      */
-    public static String uploadImage(MultipartFile file) throws IOException {
-        Map uploadedResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
-        return (String) uploadedResult.get("secure_url");
+    public String uploadImage(MultipartFile file) {
+        try {
+            // Attempt to upload the file to Cloudinary
+            Map uploadedResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+            return (String) uploadedResult.get("secure_url");
+        } catch (IOException e) {
+            // Log the exception for debugging
+            System.err.println("Image upload failed: " + e.getMessage());
+            e.printStackTrace();
+
+            // Throw a custom exception or handle the error based on your application logic
+            throw new RuntimeException("Failed to upload image. Please try again.");
+        } catch (Exception e) {
+            // Catch any other unexpected exceptions
+            System.err.println("Unexpected error during image upload: " + e.getMessage());
+            e.printStackTrace();
+
+            // Re-throw as a runtime exception or handle the error
+            throw new RuntimeException("An unexpected error occurred while uploading the image.");
+        }
     }
+
 
     /**
      * Delete an image from Cloudinary using its URL.

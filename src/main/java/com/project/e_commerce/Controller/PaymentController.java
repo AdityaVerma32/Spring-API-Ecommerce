@@ -1,5 +1,6 @@
 package com.project.e_commerce.Controller;
 
+import com.project.e_commerce.DTO.PaymentDTO;
 import com.project.e_commerce.Service.PaymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,8 +19,8 @@ public class PaymentController {
     }
 
 //    @PostMapping("make")
-//    public ResponseEntity<?> makePayment(@RequestBody Object request){
-//        return paymentService()
+//    public ResponseEntity<?> makePayment(@RequestBody PaymentDTO paymentDTO){
+//        return paymentService.makePayment(paymentDTO);
 //    }
 
 }

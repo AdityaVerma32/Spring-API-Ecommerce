@@ -1,26 +1,24 @@
 package com.project.e_commerce.Model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-public class CartItems {
+public class OrdersItems {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @ManyToOne
-    @JoinColumn(name = "cart_id")
-    @JsonIgnoreProperties({"createdAt","updatedAt"})
-    private Cart cart;
-
-    @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
+
+    @ManyToOne
+    @JoinColumn(name = "orders_id")
+    private OrdersTable orders;
 
     @Column(nullable = false)
     private Integer quantity;
@@ -44,14 +42,14 @@ public class CartItems {
         this.updatedAt = LocalDateTime.now();  // Updates the timestamp whenever the entity is updated
     }
 
-    public CartItems(Cart cart, Product product, Integer quantity, BigDecimal price) {
-        this.cart = cart;
-        this.product = product;
-        this.quantity = quantity;
-        this.price = price;
+    public OrdersItems() {
     }
 
-    public CartItems() {
+    public OrdersItems(Product product, OrdersTable orders, Integer quantity, BigDecimal price) {
+        this.product = product;
+        this.orders = orders;
+        this.quantity = quantity;
+        this.price = price;
     }
 
     public Integer getId() {
@@ -62,20 +60,20 @@ public class CartItems {
         this.id = id;
     }
 
-    public Cart getCart() {
-        return cart;
-    }
-
-    public void setCart(Cart cart) {
-        this.cart = cart;
-    }
-
     public Product getProduct() {
         return product;
     }
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public OrdersTable getOrders() {
+        return orders;
+    }
+
+    public void setOrders(OrdersTable orders) {
+        this.orders = orders;
     }
 
     public Integer getQuantity() {
@@ -112,10 +110,10 @@ public class CartItems {
 
     @Override
     public String toString() {
-        return "CartItems{" +
+        return "OrdersItems{" +
                 "id=" + id +
-                ", cart=" + cart +
                 ", product=" + product +
+                ", orders=" + orders +
                 ", quantity=" + quantity +
                 ", price=" + price +
                 ", createdAt=" + createdAt +

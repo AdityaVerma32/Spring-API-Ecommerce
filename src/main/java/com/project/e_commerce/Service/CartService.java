@@ -8,6 +8,7 @@ import com.project.e_commerce.Repo.CartItemsRepo;
 import com.project.e_commerce.Repo.CartRepo;
 import com.project.e_commerce.Repo.ProductRepo;
 import com.project.e_commerce.Repo.UserRepo;
+import com.project.e_commerce.Utils.ApiResponse;
 import org.apache.catalina.connector.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,24 +35,24 @@ public class CartService {
     }
 
     // Method to add a product to the cart
-    public ResponseEntity<?> addToCart(Integer userId, Integer prodId) {
+    public ResponseEntity<ApiResponse<Object>> addToCart(Integer userId, Integer prodId) {
         try {
 
             // Check if the user exists in the database
             Optional<Users> user = userRepo.findById(userId);
             if (user.isEmpty()) {
-                return new ResponseEntity<>("User not found", HttpStatus.BAD_REQUEST);  // User not found
+                return new ResponseEntity<>(new ApiResponse<>(false,"User not found",null), HttpStatus.BAD_REQUEST);  // User not found
             }
 
             // Check if the product exists in the database
             Optional<Product> product = productRepo.findById(prodId);
             if (product.isEmpty()) {
-                return new ResponseEntity<>("Product not found", HttpStatus.BAD_REQUEST);  // Product not found
+                return new ResponseEntity<>(new ApiResponse<>(false,"Product not found",null), HttpStatus.BAD_REQUEST);  // Product not found
             }
 
             // Check if the Product quantity is Greater than 0
             if (product.get().getStock() <= 0) {
-                return new ResponseEntity<>("Product is out of Stock", HttpStatus.BAD_REQUEST);  // Product not found
+                return new ResponseEntity<>(new ApiResponse<>(false, "Product is out of Stock",null), HttpStatus.BAD_REQUEST);  // Product not found
             }
 
             // Check if the cart exists for the current user
@@ -74,9 +75,9 @@ public class CartService {
 
                 // Check if both cart and cart item were saved successfully
                 if (savedCart.getId() != null && savedCartItem.getId() != null) {
-                    return new ResponseEntity<>("Product added to cart.", HttpStatus.OK);  // Successfully added product
+                    return new ResponseEntity<>(new ApiResponse<>(true,"Product added to cart.",null), HttpStatus.OK);  // Successfully added product
                 } else {
-                    return new ResponseEntity<>("Error occurred while adding product to cart.", HttpStatus.BAD_REQUEST);  // Error adding product
+                    return new ResponseEntity<>(new ApiResponse<>(false, "Error occurred while adding product to cart.", null), HttpStatus.BAD_REQUEST);  // Error adding product
                 }
             } else {
                 // Cart exists for the user, check if the product is already in the cart
@@ -95,7 +96,7 @@ public class CartService {
                     // Update total price of the cart
                     cart.setTotalPrice(cart.getTotalPrice().add(product.get().getPrice()));
                     cartRepo.save(cart); // Save updated cart
-                    return new ResponseEntity<>("Product added to cart.", HttpStatus.OK);  // Successfully added product
+                    return new ResponseEntity<>(new ApiResponse<>(true,"Product added to cart.",null), HttpStatus.OK);  // Successfully added product
                 } else {
                     // Product already in the cart, update quantity
                     existingCartItem.setQuantity(existingCartItem.getQuantity() + 1);
@@ -105,66 +106,65 @@ public class CartService {
                     cart.setTotalPrice(cart.getTotalPrice().add(product.get().getPrice()));
                     cartRepo.save(cart); // Save updated cart
 
-                    return new ResponseEntity<>("Product quantity updated in cart.", HttpStatus.OK);  // Successfully updated quantity
+                    return new ResponseEntity<>(new ApiResponse<>(true,"Product quantity updated in cart.",null), HttpStatus.OK);  // Successfully updated quantity
                 }
             }
         } catch (Exception e) {
             // Exception handling for any unexpected errors
-            return new ResponseEntity<>("An error occurred: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);  // Internal server error
+            return new ResponseEntity<>(new ApiResponse<>(false, "An error occurred: " + e.getMessage(),null), HttpStatus.INTERNAL_SERVER_ERROR);  // Internal server error
         }
     }
 
     // Method to get all products in the cart for a user
-    public ResponseEntity<?> getCartProducts(Integer userId) {
+    public ResponseEntity<ApiResponse<Object>> getCartProducts(Integer userId) {
         try {
             // Check if the user exists in the database
             Optional<Users> user = userRepo.findById(userId);
             if (user.isEmpty()) {
-                return new ResponseEntity<>("User not found", HttpStatus.BAD_REQUEST);  // User not found
+                return new ResponseEntity<>(new ApiResponse<>(false, "User not found",null), HttpStatus.BAD_REQUEST);  // User not found
             }
-
             // Fetch the cart for the user
             Cart cart = cartRepo.findByUser(user.get());
 
             if (cart == null) {
-                return new ResponseEntity<>("Cart not found for the user", HttpStatus.NOT_FOUND);  // Cart not found for the user
+                return new ResponseEntity<>(new ApiResponse<>(false, "Cart not found for the user", null), HttpStatus.NOT_FOUND);  // Cart not found for the user
             }
 
             // Fetch all cart items for the cart
             List<CartItems> cartItems = cartItemsRepo.findByCart(cart);
-            return new ResponseEntity<>(cartItems, HttpStatus.OK);  // Return list of cart items
+            return new ResponseEntity<>(new ApiResponse<>(true,"Cart not found for the user",cartItems), HttpStatus.OK);  // Return list of cart items
 
         } catch (Exception e) {
             // Exception handling for any unexpected errors
-            return new ResponseEntity<>("An error occurred: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);  // Internal server error
+            return new ResponseEntity<>(new ApiResponse<>(false, "An error occurred: " + e.getMessage(),null), HttpStatus.INTERNAL_SERVER_ERROR);  // Internal server error
         }
     }
 
-    public ResponseEntity<?> updateProductQuantity(Integer userId, Integer prodId, Map<String, Integer> request) {
+    public ResponseEntity<ApiResponse<Object>> updateProductQuantity(Integer userId, Integer prodId, Map<String, Integer> request) {
         Integer quantity = request.get("quantity");
 
         // Fetch the user
         Optional<Users> user = userRepo.findById(userId);
         if (user.isEmpty()) {
-            return new ResponseEntity<>("User not found", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse<>(false, "User not found",null), HttpStatus.NOT_FOUND);
         }
 
         // Fetch the cart
         Cart cart = cartRepo.findByUser(user.get());
         if (cart == null) {
-            return new ResponseEntity<>("Cart not found for the user", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse<>(false,"Cart not found for the user",null), HttpStatus.NOT_FOUND);
         }
 
         // Fetch the product
         Optional<Product> product = productRepo.findById(prodId);
         if (product.isEmpty()) {
-            return new ResponseEntity<>("Product not found", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse<>(false,"Product not found",null), HttpStatus.NOT_FOUND);
         }
 
         // Fetch the cart item
         CartItems cartItems = cartItemsRepo.findByCartAndProduct(cart, product.get());
         if (cartItems == null) {
-            return new ResponseEntity<>("Product not found in the cart", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse<>(false,"Product not found in the cart",null), HttpStatus.NOT_FOUND);
         }
 
         int current_cart_stock = cartItems.getQuantity(); // Current quantity in cart
@@ -173,7 +173,7 @@ public class CartService {
 
         if (quantity < 0) {
             // Invalid request: quantity cannot be negative
-            return new ResponseEntity<>("Invalid quantity: cannot be less than zero", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ApiResponse<>(false,"Invalid quantity: cannot be less than zero",null), HttpStatus.BAD_REQUEST);
         }
 
         if (quantity == 0) {
@@ -185,7 +185,7 @@ public class CartService {
             cartRepo.save(cart);
             // Delete the Product entry from cart Items table
             cartItemsRepo.delete(cartItems);
-            return new ResponseEntity<>("Product removed from cart", HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse<>(true,"Product removed from cart",null), HttpStatus.OK);
         }
 
         if (change_in_quantity > 0) {
@@ -199,10 +199,10 @@ public class CartService {
                 cartItems.setQuantity(quantity);
                 cartItemsRepo.save(cartItems);
 
-                return new ResponseEntity<>("Product quantity updated successfully", HttpStatus.OK);
+                return new ResponseEntity<>(new ApiResponse<>(true,"Product quantity updated successfully",null), HttpStatus.OK);
             } else {
                 // Current stock is insufficient for the requested quantity
-                return new ResponseEntity<>("Insufficient stock. Current stock is already less than the quantity in your cart.", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(new ApiResponse<>(false,"Insufficient stock. Current stock is already less than the quantity in your cart.",null), HttpStatus.BAD_REQUEST);
             }
         } else {
             // Decreasing the quantity
@@ -214,7 +214,7 @@ public class CartService {
                 cartItems.setQuantity(quantity);
                 cartItemsRepo.save(cartItems);
 
-                return new ResponseEntity<>("Product quantity updated successfully", HttpStatus.OK);
+                return new ResponseEntity<>(new ApiResponse<>(true,"Product quantity updated successfully",null), HttpStatus.OK);
             } else {
                 // Handle cases where stock is less than current cart stock
                 if (current_stock < current_cart_stock) {
@@ -225,7 +225,7 @@ public class CartService {
                         cartRepo.save(cart);
                         cartItems.setQuantity(current_stock);
                         cartItemsRepo.save(cartItems);
-                        return new ResponseEntity<>("Product is Out of Stock", HttpStatus.OK);
+                        return new ResponseEntity<>(new ApiResponse<>(true,"Product is Out of Stock",null), HttpStatus.OK);
                     } else {
 
                         BigDecimal change_price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity()-current_stock)).abs();
@@ -234,44 +234,44 @@ public class CartService {
 
                         cartItems.setQuantity(current_stock);
                         cartItemsRepo.save(cartItems);
-                        return new ResponseEntity<>("Stock is less than the quantity in your cart.Adjusted the quantity.", HttpStatus.BAD_REQUEST);
+                        return new ResponseEntity<>(new ApiResponse<>(false,"Stock is less than the quantity in your cart.Adjusted the quantity.",null), HttpStatus.BAD_REQUEST);
                     }
                 }
             }
         }
 
-        return new ResponseEntity<>("An unexpected error occurred.", HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(new ApiResponse<>(false,"An unexpected error occurred.",null), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
 
-    public ResponseEntity<?> deleteCartProduct(Integer prodId, Integer userId) {
+    public ResponseEntity<ApiResponse<Object>> deleteCartProduct(Integer prodId, Integer userId) {
         try {
             // Fetch the user by userId
             Optional<Users> user = userRepo.findById(userId);
             if (user.isEmpty()) {
                 // Return error if user is not found
-                return new ResponseEntity<>("User not found", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(new ApiResponse<>(false,"User not found",null), HttpStatus.BAD_REQUEST);
             }
 
             // Fetch the cart associated with the user
             Cart cart = cartRepo.findByUser(user.get());
             if (cart == null) {
                 // Return error if the cart does not exist
-                return new ResponseEntity<>("Cart not found for the user", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(new ApiResponse<>(false,"Cart not found for the user",null), HttpStatus.BAD_REQUEST);
             }
 
             // Fetch the product by prodId
             Optional<Product> product = productRepo.findById(prodId);
             if (product.isEmpty()) {
                 // Return error if product is not found
-                return new ResponseEntity<>("Product not found", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(new ApiResponse<>(false,"Product not found",null), HttpStatus.BAD_REQUEST);
             }
 
             // Fetch the cart item for the given cart and product
             CartItems cartItems = cartItemsRepo.findByCartAndProduct(cart, product.get());
             if (cartItems == null) {
                 // Return error if the cart item does not exist
-                return new ResponseEntity<>("Product not found in the cart", HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(new ApiResponse<>(false,"Product not found in the cart",null), HttpStatus.BAD_REQUEST);
             }
 
             BigDecimal price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity()));
@@ -281,11 +281,11 @@ public class CartService {
 
 
             // Return success response
-            return new ResponseEntity<>("Product removed from cart", HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse<>(true,"Product removed from cart",null), HttpStatus.OK);
 
         } catch (Exception e) {
             // Handle any unexpected exceptions
-            return new ResponseEntity<>("An error occurred: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse<>(false,"An error occurred: " + e.getMessage(),null), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

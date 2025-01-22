@@ -3,6 +3,7 @@ package com.project.e_commerce.Service;
 import com.project.e_commerce.JWT.JWTService;
 import com.project.e_commerce.Model.BlacklistToken;
 import com.project.e_commerce.Repo.TokenBlacklistedRepo;
+import com.project.e_commerce.Utils.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +33,7 @@ public class TokenBlacklistedService {
      * @param request HTTP request containing the Authorization header.
      * @return ResponseEntity with a success message and appropriate HTTP status.
      */
-    public ResponseEntity<String> logoutUser(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Object>> logoutUser(HttpServletRequest request) {
         try {
             // Extracting the Authorization header from the request.
             String authHeader = request.getHeader("Authorization");
@@ -56,17 +57,17 @@ public class TokenBlacklistedService {
                 tokenBlacklistedRepo.save(blacklistToken);
 
                 // Return a successful response.
-                return new ResponseEntity<>("Logout Successful", HttpStatus.OK);
+                return new ResponseEntity<>(new ApiResponse<>(true, "Logout Successful", null), HttpStatus.OK);
             } else {
                 // If the Authorization header is missing or malformed, throw an exception.
                 throw new BadCredentialsException("Invalid Authorization header format.");
             }
         } catch (BadCredentialsException ex) {
             // Handle invalid authorization header format or missing token.
-            return new ResponseEntity<>("Bad credentials: " + ex.getMessage(), HttpStatus.UNAUTHORIZED);
+            return new ResponseEntity<>(new ApiResponse<>(false,"Bad credentials: " + ex.getMessage(),null), HttpStatus.UNAUTHORIZED);
         } catch (Exception ex) {
             // Handle any other exceptions that may occur.
-            return new ResponseEntity<>("An error occurred during logout: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse<>(false, "An error occurred during logout: " + ex.getMessage(), null), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

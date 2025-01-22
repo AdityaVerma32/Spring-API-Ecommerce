@@ -2,6 +2,7 @@ package com.project.e_commerce.Controller;
 
 import com.project.e_commerce.Model.UserPrincipal;
 import com.project.e_commerce.Service.CartService;
+import com.project.e_commerce.Utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,23 +28,24 @@ public class CartController {
     }
 
     @PostMapping("add")
-    public ResponseEntity<?> addToCart(@RequestBody Integer prodId) {
+    public ResponseEntity<ApiResponse<Object>> addToCart(@RequestBody Integer prodId) {
         return cartService.addToCart(getUserId(), prodId);
     }
 
     @GetMapping("products")
-    public ResponseEntity<?> getCartProducts() {
-        return cartService.getCartProducts(getUserId());
+    public ResponseEntity<ApiResponse<Object>> getCartProducts(@RequestHeader("Authorization") String authorization) {
+        System.out.println("Inside the Controller: "+authorization);
+        return new ResponseEntity<>(new ApiResponse<>(true,"Inside getting cart Items",null),HttpStatus.OK);
+//        return cartService.getCartProducts(getUserId());
     }
 
     @PostMapping("update-product/{id}")
-    public ResponseEntity<?> changeQuantityOfProductInCart(@PathVariable("id") Integer prodId,
-                                                           @RequestBody Map<String, Integer> request) {
-        return  cartService.updateProductQuantity(getUserId(),prodId,request);
+    public ResponseEntity<ApiResponse<Object>> changeQuantityOfProductInCart(@PathVariable("id") Integer prodId, @RequestBody Map<String, Integer> request) {
+        return cartService.updateProductQuantity(getUserId(), prodId, request);
     }
 
     @DeleteMapping("delete-product/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable("id") Integer prodId){
+    public ResponseEntity<ApiResponse<Object>> deleteProduct(@PathVariable("id") Integer prodId) {
         return cartService.deleteCartProduct(prodId, getUserId());
     }
 

@@ -38,6 +38,8 @@ public class JWTFilter extends OncePerRequestFilter {
         String token = null;  // Variable to store the JWT token
         String username = null;  // Variable to store the username extracted from the token
 
+        System.out.println("Authorization Header:"+authHeader);
+
         // Checking if the Authorization header exists and starts with "Bearer " indicating a JWT token is present
         if(authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);  // Extracting the token part after "Bearer "
