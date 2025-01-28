@@ -18,8 +18,14 @@ public class Cart {
     @JsonIgnoreProperties({"password","email","role","firstName","lastName","createdAt","updatedAt"})
     private Users user;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private BigDecimal totalPrice;
+
+    @Column(nullable = true)
+    private Integer mapToOrder;
+
+    @Column(nullable = true)
+    private Integer orderId;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -43,6 +49,22 @@ public class Cart {
     public Cart(Users user, BigDecimal totalPrice) {
         this.user = user;
         this.totalPrice = totalPrice;
+    }
+
+    public Integer getMapToOrder() {
+        return mapToOrder;
+    }
+
+    public void setMapToOrder(Integer mapToOrder) {
+        this.mapToOrder = mapToOrder;
+    }
+
+    public Integer getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Integer orderId) {
+        this.orderId = orderId;
     }
 
     public Integer getId() {

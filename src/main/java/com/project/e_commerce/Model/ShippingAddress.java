@@ -23,6 +23,16 @@ public class ShippingAddress implements Serializable {
     private String postalCode;
     @Column(nullable = false)
     private String country;
+    @Column(nullable = true)
+    private String phoneNo;
+
+    public String getPhoneNo() {
+        return phoneNo;
+    }
+
+    public void setPhoneNo(String phoneNo) {
+        this.phoneNo = phoneNo;
+    }
 
     @ManyToOne
     @JoinColumn(name = "user_id")
@@ -49,13 +59,14 @@ public class ShippingAddress implements Serializable {
     // Constructors
     public ShippingAddress() {}
 
-    public ShippingAddress(String street, String city, String state, String postalCode, String country, Users user) {
+    public ShippingAddress(String phoneNo,String street, String city, String state, String postalCode, String country, Users user) {
         this.street = street;
         this.city = city;
         this.state = state;
         this.postalCode = postalCode;
         this.country = country;
         this.user = user;
+        this.phoneNo = phoneNo;
     }
 
     // Getters and Setters
@@ -143,6 +154,7 @@ public class ShippingAddress implements Serializable {
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 ", user=" + user +
+                ", phoneNo=" + phoneNo +
                 '}';
     }
 }

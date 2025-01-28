@@ -2,6 +2,7 @@ package com.project.e_commerce.Service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,7 +13,8 @@ import java.util.Map;
 public class CloudinaryService {
 
     // Initialize Cloudinary instance with credentials
-    static Cloudinary cloudinary = new Cloudinary();
+    @Value("${cloudinary.url}")
+    private String cloudinaryUrl;
 
     /**
      * Upload an image to Cloudinary.
@@ -22,6 +24,7 @@ public class CloudinaryService {
      * @throws IOException if an error occurs during upload.
      */
     public String uploadImage(MultipartFile file) {
+        Cloudinary cloudinary = new Cloudinary(cloudinaryUrl);
         try {
             // Attempt to upload the file to Cloudinary
             Map uploadedResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
@@ -51,6 +54,7 @@ public class CloudinaryService {
      * @return true if the image is deleted successfully, false otherwise.
      */
     public boolean deleteImage(String imageUrl) {
+        Cloudinary cloudinary = new Cloudinary(cloudinaryUrl);
         try {
             // Extract the public ID from the image URL
             String publicId = extractPublicIdFromUrl(imageUrl);

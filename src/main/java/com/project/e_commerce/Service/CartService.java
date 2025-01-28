@@ -1,13 +1,7 @@
 package com.project.e_commerce.Service;
 
-import com.project.e_commerce.Model.Cart;
-import com.project.e_commerce.Model.CartItems;
-import com.project.e_commerce.Model.Product;
-import com.project.e_commerce.Model.Users;
-import com.project.e_commerce.Repo.CartItemsRepo;
-import com.project.e_commerce.Repo.CartRepo;
-import com.project.e_commerce.Repo.ProductRepo;
-import com.project.e_commerce.Repo.UserRepo;
+import com.project.e_commerce.Model.*;
+import com.project.e_commerce.Repo.*;
 import com.project.e_commerce.Utils.ApiResponse;
 import org.apache.catalina.connector.Response;
 import org.springframework.http.HttpStatus;
@@ -26,94 +20,159 @@ public class CartService {
     private final CartRepo cartRepo;
     private final ProductRepo productRepo;
     private final CartItemsRepo cartItemsRepo;
+    private final OrdersRepo ordersRepo;
+    private final OrdersItemsRepo ordersItemsRepo;
 
-    public CartService(UserRepo userRepo, CartRepo cartRepo, ProductRepo productRepo, CartItemsRepo cartItemsRepo) {
+
+    public CartService(UserRepo userRepo, CartRepo cartRepo, ProductRepo productRepo, CartItemsRepo cartItemsRepo, OrdersItemsRepo ordersItemsRepo, OrdersRepo ordersRepo) {
         this.userRepo = userRepo;
         this.cartRepo = cartRepo;
         this.productRepo = productRepo;
         this.cartItemsRepo = cartItemsRepo;
+        this.ordersRepo = ordersRepo;
+        this.ordersItemsRepo = ordersItemsRepo;
     }
 
     // Method to add a product to the cart
     public ResponseEntity<ApiResponse<Object>> addToCart(Integer userId, Integer prodId) {
         try {
+            // Check if the user exists
+            Users user = userRepo.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-            // Check if the user exists in the database
-            Optional<Users> user = userRepo.findById(userId);
-            if (user.isEmpty()) {
-                return new ResponseEntity<>(new ApiResponse<>(false,"User not found",null), HttpStatus.BAD_REQUEST);  // User not found
+            // Check if the product exists
+            Product product = productRepo.findById(prodId).orElseThrow(() -> new IllegalArgumentException("Product not found"));
+
+            // Check if the product is in stock
+            if (product.getAvailable_quantity() <= 0) {
+                return new ResponseEntity<>(new ApiResponse<>(false, "Product is out of stock", null), HttpStatus.BAD_REQUEST);
             }
 
-            // Check if the product exists in the database
-            Optional<Product> product = productRepo.findById(prodId);
-            if (product.isEmpty()) {
-                return new ResponseEntity<>(new ApiResponse<>(false,"Product not found",null), HttpStatus.BAD_REQUEST);  // Product not found
-            }
-
-            // Check if the Product quantity is Greater than 0
-            if (product.get().getStock() <= 0) {
-                return new ResponseEntity<>(new ApiResponse<>(false, "Product is out of Stock",null), HttpStatus.BAD_REQUEST);  // Product not found
-            }
-
-            // Check if the cart exists for the current user
-            Cart cart = cartRepo.findByUser(user.get());
-
+            // Fetch or create the user's cart
+            Cart cart = cartRepo.findByUser(user);
             if (cart == null) {
-                // Create a new cart for the user if no cart exists
-                Cart newCart = new Cart();
-                newCart.setUser(user.get());
-                newCart.setTotalPrice(product.get().getPrice()); // Set total price to the price of the first product
-                Cart savedCart = cartRepo.save(newCart);
-
-                // Create cart item for the product
-                CartItems cartItem = new CartItems();
-                cartItem.setCart(savedCart);
-                cartItem.setProduct(product.get());
-                cartItem.setPrice(product.get().getPrice());
-                cartItem.setQuantity(1); // Default quantity for new product
-                CartItems savedCartItem = cartItemsRepo.save(cartItem);
-
-                // Check if both cart and cart item were saved successfully
-                if (savedCart.getId() != null && savedCartItem.getId() != null) {
-                    return new ResponseEntity<>(new ApiResponse<>(true,"Product added to cart.",null), HttpStatus.OK);  // Successfully added product
-                } else {
-                    return new ResponseEntity<>(new ApiResponse<>(false, "Error occurred while adding product to cart.", null), HttpStatus.BAD_REQUEST);  // Error adding product
-                }
-            } else {
-                // Cart exists for the user, check if the product is already in the cart
-                CartItems existingCartItem = cartItemsRepo.findByCartAndProduct(cart, product.get());
-
-                if (existingCartItem == null) {
-                    // Product not in the cart, add it
-
-                    CartItems newCartItem = new CartItems();
-                    newCartItem.setCart(cart);
-                    newCartItem.setProduct(product.get());
-                    newCartItem.setPrice(product.get().getPrice());
-                    newCartItem.setQuantity(1); // Default quantity for new product
-                    cartItemsRepo.save(newCartItem);
-
-                    // Update total price of the cart
-                    cart.setTotalPrice(cart.getTotalPrice().add(product.get().getPrice()));
-                    cartRepo.save(cart); // Save updated cart
-                    return new ResponseEntity<>(new ApiResponse<>(true,"Product added to cart.",null), HttpStatus.OK);  // Successfully added product
-                } else {
-                    // Product already in the cart, update quantity
-                    existingCartItem.setQuantity(existingCartItem.getQuantity() + 1);
-                    cartItemsRepo.save(existingCartItem);
-
-                    // Update total price of the cart
-                    cart.setTotalPrice(cart.getTotalPrice().add(product.get().getPrice()));
-                    cartRepo.save(cart); // Save updated cart
-
-                    return new ResponseEntity<>(new ApiResponse<>(true,"Product quantity updated in cart.",null), HttpStatus.OK);  // Successfully updated quantity
-                }
+                cart = createNewCart(user, product);
+                return new ResponseEntity<>(new ApiResponse<>(true, "Product added to cart.", null), HttpStatus.OK);
             }
+
+            // Handle case where cart is mapped to an order
+            if (cart.getMapToOrder() == 1) {
+                handleCartWithMappedOrder(cart, product);
+            } else {
+                handleCartWithoutMappedOrder(cart, product);
+            }
+
+            return new ResponseEntity<>(new ApiResponse<>(true, "Cart updated successfully.", null), HttpStatus.OK);
+
+        } catch (IllegalArgumentException e) {
+            // Handles invalid user or product scenarios
+            return new ResponseEntity<>(new ApiResponse<>(false, e.getMessage(), null), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            // Exception handling for any unexpected errors
-            return new ResponseEntity<>(new ApiResponse<>(false, "An error occurred: " + e.getMessage(),null), HttpStatus.INTERNAL_SERVER_ERROR);  // Internal server error
+            // Generic error handling for unexpected issues
+            return new ResponseEntity<>(new ApiResponse<>(false, "An error occurred: " + e.getMessage(), null), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    // Helper method to create a new cart
+    private Cart createNewCart(Users user, Product product) {
+        Cart newCart = new Cart();
+        newCart.setUser(user);
+        newCart.setTotalPrice(product.getPrice());
+        newCart.setMapToOrder(0); // Initially, the cart is not linked to an order
+        newCart.setOrderId(null);
+        Cart savedCart = cartRepo.save(newCart);
+
+        addCartItem(savedCart, product, 1);
+        return savedCart;
+    }
+
+    // Handle cart updates when the cart is linked to an order
+    private void handleCartWithMappedOrder(Cart cart, Product product) {
+        Integer orderId = cart.getOrderId();
+        OrdersTable existingOrder = ordersRepo.findById(orderId).orElseThrow(() -> new IllegalStateException("Mapped order not found"));
+
+        CartItems cartItem = cartItemsRepo.findByCartAndProduct(cart, product);
+        OrdersItems orderItem = ordersItemsRepo.findByOrdersAndProduct(existingOrder, product);
+
+        if (cartItem == null && orderItem == null) {
+            // Add new item to both cart and order
+            addCartItem(cart, product, 1);
+            addOrderItem(existingOrder, product, 1);
+        } else {
+            // Update quantity in both cart and order
+            updateCartItem(cartItem, 1);
+            updateOrderItem(orderItem, 1);
+        }
+
+        // Update inventory and totals
+        updateInventory(product, 1);
+        updateCartTotal(cart, product.getPrice());
+        updateOrderTotal(existingOrder, product.getPrice());
+    }
+
+    // Handle cart updates when the cart is not linked to an order
+    private void handleCartWithoutMappedOrder(Cart cart, Product product) {
+        CartItems cartItem = cartItemsRepo.findByCartAndProduct(cart, product);
+
+        if (cartItem == null) {
+            addCartItem(cart, product, 1);
+        } else {
+            updateCartItem(cartItem, 1);
+        }
+
+        updateCartTotal(cart, product.getPrice());
+    }
+
+    // Add a new item to the cart
+    private void addCartItem(Cart cart, Product product, int quantity) {
+        CartItems newCartItem = new CartItems();
+        newCartItem.setCart(cart);
+        newCartItem.setProduct(product);
+        newCartItem.setPrice(product.getPrice());
+        newCartItem.setQuantity(quantity);
+        cartItemsRepo.save(newCartItem);
+    }
+
+    // Add a new item to the order
+    private void addOrderItem(OrdersTable order, Product product, int quantity) {
+        OrdersItems newOrderItem = new OrdersItems();
+        newOrderItem.setOrders(order);
+        newOrderItem.setProduct(product);
+        newOrderItem.setPrice(product.getPrice());
+        newOrderItem.setQuantity(quantity);
+        ordersItemsRepo.save(newOrderItem);
+    }
+
+    // Update an existing cart item
+    private void updateCartItem(CartItems cartItem, int quantity) {
+        cartItem.setQuantity(cartItem.getQuantity() + quantity);
+        cartItemsRepo.save(cartItem);
+    }
+
+    // Update an existing order item
+    private void updateOrderItem(OrdersItems orderItem, int quantity) {
+        orderItem.setQuantity(orderItem.getQuantity() + quantity);
+        ordersItemsRepo.save(orderItem);
+    }
+
+    // Update inventory (deduct available and add to reserved)
+    private void updateInventory(Product product, int quantity) {
+        product.setAvailable_quantity(product.getAvailable_quantity() - quantity);
+        product.setReserved_quantity(product.getReserved_quantity() + quantity);
+        productRepo.save(product);
+    }
+
+    // Update cart total price
+    private void updateCartTotal(Cart cart, BigDecimal price) {
+        cart.setTotalPrice(cart.getTotalPrice().add(price));
+        cartRepo.save(cart);
+    }
+
+    // Update order total amount
+    private void updateOrderTotal(OrdersTable order, BigDecimal price) {
+        order.setTotalAmount(order.getTotalAmount().add(price));
+        ordersRepo.save(order);
+    }
+
 
     // Method to get all products in the cart for a user
     public ResponseEntity<ApiResponse<Object>> getCartProducts(Integer userId) {
@@ -121,7 +180,7 @@ public class CartService {
             // Check if the user exists in the database
             Optional<Users> user = userRepo.findById(userId);
             if (user.isEmpty()) {
-                return new ResponseEntity<>(new ApiResponse<>(false, "User not found",null), HttpStatus.BAD_REQUEST);  // User not found
+                return new ResponseEntity<>(new ApiResponse<>(false, "User not found", null), HttpStatus.BAD_REQUEST);  // User not found
             }
             // Fetch the cart for the user
             Cart cart = cartRepo.findByUser(user.get());
@@ -132,11 +191,11 @@ public class CartService {
 
             // Fetch all cart items for the cart
             List<CartItems> cartItems = cartItemsRepo.findByCart(cart);
-            return new ResponseEntity<>(new ApiResponse<>(true,"Cart not found for the user",cartItems), HttpStatus.OK);  // Return list of cart items
+            return new ResponseEntity<>(new ApiResponse<>(true, "Cart not found for the user", cartItems), HttpStatus.OK);  // Return list of cart items
 
         } catch (Exception e) {
             // Exception handling for any unexpected errors
-            return new ResponseEntity<>(new ApiResponse<>(false, "An error occurred: " + e.getMessage(),null), HttpStatus.INTERNAL_SERVER_ERROR);  // Internal server error
+            return new ResponseEntity<>(new ApiResponse<>(false, "An error occurred: " + e.getMessage(), null), HttpStatus.INTERNAL_SERVER_ERROR);  // Internal server error
         }
     }
 
@@ -146,103 +205,145 @@ public class CartService {
         // Fetch the user
         Optional<Users> user = userRepo.findById(userId);
         if (user.isEmpty()) {
-            return new ResponseEntity<>(new ApiResponse<>(false, "User not found",null), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse<>(false, "User not found", null), HttpStatus.NOT_FOUND);
         }
 
         // Fetch the cart
         Cart cart = cartRepo.findByUser(user.get());
         if (cart == null) {
-            return new ResponseEntity<>(new ApiResponse<>(false,"Cart not found for the user",null), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse<>(false, "Cart not found for the user", null), HttpStatus.NOT_FOUND);
         }
 
         // Fetch the product
         Optional<Product> product = productRepo.findById(prodId);
         if (product.isEmpty()) {
-            return new ResponseEntity<>(new ApiResponse<>(false,"Product not found",null), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse<>(false, "Product not found", null), HttpStatus.NOT_FOUND);
         }
 
         // Fetch the cart item
         CartItems cartItems = cartItemsRepo.findByCartAndProduct(cart, product.get());
         if (cartItems == null) {
-            return new ResponseEntity<>(new ApiResponse<>(false,"Product not found in the cart",null), HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new ApiResponse<>(false, "Product not found in the cart", null), HttpStatus.NOT_FOUND);
         }
 
         int current_cart_stock = cartItems.getQuantity(); // Current quantity in cart
-        int current_stock = product.get().getStock(); // Current stock in inventory
-        int change_in_quantity = quantity - current_cart_stock;
+        int current_stock = product.get().getAvailable_quantity(); // Current stock in inventory
+        int change_in_quantity = quantity - current_cart_stock; // 1 or -1
 
         if (quantity < 0) {
             // Invalid request: quantity cannot be negative
-            return new ResponseEntity<>(new ApiResponse<>(false,"Invalid quantity: cannot be less than zero",null), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new ApiResponse<>(false, "Invalid quantity: cannot be less than zero", null), HttpStatus.BAD_REQUEST);
         }
 
-        if (quantity == 0) {
-            // Remove product from cart
-            BigDecimal price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity()));
+        // Now we need to check if the Cart is Mapped to Orders Table
+        if (cart.getMapToOrder() == 1) { // If the Cart is mapped to Order then update both cart table and Orders table
 
-            // Decrease the Total price from Cart table
-            cart.setTotalPrice(cart.getTotalPrice().subtract(price));
-            cartRepo.save(cart);
-            // Delete the Product entry from cart Items table
-            cartItemsRepo.delete(cartItems);
-            return new ResponseEntity<>(new ApiResponse<>(true,"Product removed from cart",null), HttpStatus.OK);
-        }
+            Integer orderId = cart.getOrderId();
+            Optional<OrdersTable> existingOrder = ordersRepo.findById(orderId);
+            OrdersItems ordersItems = ordersItemsRepo.findByOrdersAndProduct(existingOrder.get(), product.get());
 
-        if (change_in_quantity > 0) {
-            // Increasing the quantity
-            if (current_stock >= quantity) {
-                // Update the quantity in the cart
-                BigDecimal change_price = cartItems.getPrice().multiply(new BigDecimal(change_in_quantity));
-                cart.setTotalPrice(cart.getTotalPrice().add(change_price));
-                cartRepo.save(cart);
-                // Update the Quantity in the Cart Items Table
-                cartItems.setQuantity(quantity);
-                cartItemsRepo.save(cartItems);
+            if (quantity == 0) { // If the new Quantity needs to be 0 then delete this Item from the cart table and Orders table
 
-                return new ResponseEntity<>(new ApiResponse<>(true,"Product quantity updated successfully",null), HttpStatus.OK);
+                // Delete product from cart and Orders table
+                deleteProductFromCart(cart, cartItems, product.get());
+                deleteProductFromOrder(existingOrder.get(), ordersItems, product.get());
+
+                // changes the available quantity and reserved quantity
+                updateInventory(product.get(), change_in_quantity);
+                return new ResponseEntity<>(new ApiResponse<>(true, "Product removed from cart", null), HttpStatus.OK);
+            }
+
+            if (current_stock < quantity && change_in_quantity > 0) {
+                return new ResponseEntity<>(new ApiResponse<>(false, "Insufficient stock.", null), HttpStatus.BAD_REQUEST);
             } else {
-                // Current stock is insufficient for the requested quantity
-                return new ResponseEntity<>(new ApiResponse<>(false,"Insufficient stock. Current stock is already less than the quantity in your cart.",null), HttpStatus.BAD_REQUEST);
+                // Update the Cart Items table and Order Items table
+                updateCartItem(cartItems, change_in_quantity);
+                updateOrderItem(ordersItems, change_in_quantity);
+
+                // Update Cart Table and Orders table
+                updateCartTotal(cart, product.get().getPrice().multiply(new BigDecimal(change_in_quantity)));
+                updateOrderTotal(existingOrder.get(), product.get().getPrice().multiply(new BigDecimal(change_in_quantity)));
+
+                // update Inventory
+                updateInventory(product.get(), change_in_quantity);
+
+                return new ResponseEntity<>(new ApiResponse<>(true, "Product quantity updated successfully", null), HttpStatus.OK);
             }
         } else {
-            // Decreasing the quantity
-            if (current_stock >= quantity) {
-                // Update the quantity in the cart
-                BigDecimal change_price = cartItems.getPrice().multiply(new BigDecimal(change_in_quantity)).abs();
-                cart.setTotalPrice(cart.getTotalPrice().subtract(change_price));
+            if (quantity == 0) {
+                // Remove product from cart
+                BigDecimal price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity()));
+
+                // Decrease the Total price from Cart table
+                cart.setTotalPrice(cart.getTotalPrice().subtract(price));
                 cartRepo.save(cart);
-                cartItems.setQuantity(quantity);
-                cartItemsRepo.save(cartItems);
+                // Delete the Product entry from cart Items table
+                cartItemsRepo.delete(cartItems);
+                return new ResponseEntity<>(new ApiResponse<>(true, "Product removed from cart", null), HttpStatus.OK);
+            }
 
-                return new ResponseEntity<>(new ApiResponse<>(true,"Product quantity updated successfully",null), HttpStatus.OK);
+            if (change_in_quantity > 0) {
+                // Increasing the quantity
+                if (current_stock >= quantity) {
+                    // Update the quantity in the cart
+                    BigDecimal change_price = product.get().getPrice().multiply(new BigDecimal(change_in_quantity));
+                    updateCartTotal(cart, change_price);
+                    // Update the Quantity in the Cart Items Table
+                    updateCartItem(cartItems, change_in_quantity);
+
+                    return new ResponseEntity<>(new ApiResponse<>(true, "Product quantity updated successfully", null), HttpStatus.OK);
+                } else {
+                    // Current stock is insufficient for the requested quantity
+                    return new ResponseEntity<>(new ApiResponse<>(false, "Insufficient stock. Current stock is already less than the quantity in your cart.", null), HttpStatus.BAD_REQUEST);
+                }
             } else {
-                // Handle cases where stock is less than current cart stock
-                if (current_stock < current_cart_stock) {
-                    if (current_stock == 0) {
-                        // Remove product from cart
-                        BigDecimal change_price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity())).abs();
-                        cart.setTotalPrice(cart.getTotalPrice().subtract(change_price));
-                        cartRepo.save(cart);
-                        cartItems.setQuantity(current_stock);
-                        cartItemsRepo.save(cartItems);
-                        return new ResponseEntity<>(new ApiResponse<>(true,"Product is Out of Stock",null), HttpStatus.OK);
-                    } else {
+                // Decreasing the quantity
+                if (current_stock >= quantity) {
+                    // Update the quantity in the cart
+                    BigDecimal change_price = product.get().getPrice().multiply(new BigDecimal(change_in_quantity));
+                    updateCartTotal(cart, change_price);
+                    updateCartItem(cartItems, change_in_quantity);
 
-                        BigDecimal change_price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity()-current_stock)).abs();
-                        cart.setTotalPrice(cart.getTotalPrice().subtract(change_price));
-                        cartRepo.save(cart);
-
-                        cartItems.setQuantity(current_stock);
-                        cartItemsRepo.save(cartItems);
-                        return new ResponseEntity<>(new ApiResponse<>(false,"Stock is less than the quantity in your cart.Adjusted the quantity.",null), HttpStatus.BAD_REQUEST);
+                    return new ResponseEntity<>(new ApiResponse<>(true, "Product quantity updated successfully", null), HttpStatus.OK);
+                } else {
+                    // Handle cases where stock is less than current cart stock
+                    if (current_stock < current_cart_stock) {
+                        if (current_stock == 0) {
+                            // Remove product from cart
+                            BigDecimal change_price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity())).abs();
+                            updateCartTotal(cart, change_price);
+                            cartItemsRepo.delete(cartItems);
+                            return new ResponseEntity<>(new ApiResponse<>(true, "Product is Out of Stock", null), HttpStatus.OK);
+                        } else {
+                            BigDecimal change_price = cartItems.getPrice().multiply(new BigDecimal(current_stock - current_cart_stock));
+                            updateCartTotal(cart, change_price);
+                            cartItems.setQuantity(current_stock);
+                            cartItemsRepo.save(cartItems);
+                            return new ResponseEntity<>(new ApiResponse<>(false, "Stock is less than the quantity in your cart.Adjusted the quantity.", null), HttpStatus.BAD_REQUEST);
+                        }
                     }
                 }
             }
         }
 
-        return new ResponseEntity<>(new ApiResponse<>(false,"An unexpected error occurred.",null), HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(new ApiResponse<>(false, "An unexpected error occurred.", null), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    // Delete product from cart and Orders table
+//    deleteProductFromCart(cart, cartItems, product);
+//    deleteProductFromOrder(existingOrder, ordersItems, product);
+
+    private void deleteProductFromCart(Cart cart, CartItems cartItems, Product product){
+        BigDecimal change_price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity()));
+        updateCartTotal(cart,change_price);
+        cartItemsRepo.delete(cartItems);
+    }
+
+    private void deleteProductFromOrder(OrdersTable existingOrder,OrdersItems ordersItems,Product product){
+        BigDecimal change_price = ordersItems.getPrice().multiply(new BigDecimal(ordersItems.getQuantity()));
+        updateOrderTotal(existingOrder,change_price);
+        ordersItemsRepo.delete(ordersItems);
+    }
 
     public ResponseEntity<ApiResponse<Object>> deleteCartProduct(Integer prodId, Integer userId) {
         try {
@@ -250,28 +351,28 @@ public class CartService {
             Optional<Users> user = userRepo.findById(userId);
             if (user.isEmpty()) {
                 // Return error if user is not found
-                return new ResponseEntity<>(new ApiResponse<>(false,"User not found",null), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(new ApiResponse<>(false, "User not found", null), HttpStatus.BAD_REQUEST);
             }
 
             // Fetch the cart associated with the user
             Cart cart = cartRepo.findByUser(user.get());
             if (cart == null) {
                 // Return error if the cart does not exist
-                return new ResponseEntity<>(new ApiResponse<>(false,"Cart not found for the user",null), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(new ApiResponse<>(false, "Cart not found for the user", null), HttpStatus.BAD_REQUEST);
             }
 
             // Fetch the product by prodId
             Optional<Product> product = productRepo.findById(prodId);
             if (product.isEmpty()) {
                 // Return error if product is not found
-                return new ResponseEntity<>(new ApiResponse<>(false,"Product not found",null), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(new ApiResponse<>(false, "Product not found", null), HttpStatus.BAD_REQUEST);
             }
 
             // Fetch the cart item for the given cart and product
             CartItems cartItems = cartItemsRepo.findByCartAndProduct(cart, product.get());
             if (cartItems == null) {
                 // Return error if the cart item does not exist
-                return new ResponseEntity<>(new ApiResponse<>(false,"Product not found in the cart",null), HttpStatus.BAD_REQUEST);
+                return new ResponseEntity<>(new ApiResponse<>(false, "Product not found in the cart", null), HttpStatus.BAD_REQUEST);
             }
 
             BigDecimal price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity()));
@@ -281,11 +382,11 @@ public class CartService {
 
 
             // Return success response
-            return new ResponseEntity<>(new ApiResponse<>(true,"Product removed from cart",null), HttpStatus.OK);
+            return new ResponseEntity<>(new ApiResponse<>(true, "Product removed from cart", null), HttpStatus.OK);
 
         } catch (Exception e) {
             // Handle any unexpected exceptions
-            return new ResponseEntity<>(new ApiResponse<>(false,"An error occurred: " + e.getMessage(),null), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ApiResponse<>(false, "An error occurred: " + e.getMessage(), null), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

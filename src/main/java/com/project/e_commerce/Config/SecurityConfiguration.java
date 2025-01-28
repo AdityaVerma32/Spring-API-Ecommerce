@@ -4,8 +4,6 @@ import com.project.e_commerce.JWT.JWTFilter;
 import org.apache.catalina.filters.CorsFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -16,14 +14,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
-import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
@@ -49,7 +42,7 @@ public class SecurityConfiguration {
                         .requestMatchers("auth/register", "auth/login", "auth/google", "/products/**").permitAll()
 
                         // User-Specific Endpoints (Authentication Required)
-                        .requestMatchers( "/orders/**", "/shipping/**","/cart/**").hasRole("USER")
+                        .requestMatchers( "/orders/**", "/shipping/**","/cart/**","/stripe/**","/payment/saveOrderData").hasRole("USER")
 
                         // Admin-Specific Endpoints (Authentication & Role Required)
                         .requestMatchers("/admin/**").hasRole("ADMIN")

@@ -62,11 +62,11 @@ public class ProductService {
     /**
      * Create a new product with the given details and image file.
      *
-     * @param productName Product name.
-     * @param description Product description.
-     * @param price       Product price.
-     * @param stock       Product stock count.
-     * @param imageFile   Image file for the product.
+     * @param productName        Product name.
+     * @param description        Product description.
+     * @param price              Product price.
+     * @param available_quantity Product stock count.
+     * @param imageFile          Image file for the product.
      * @return ResponseEntity with a success or failure message and HTTP status.
      * @throws IOException if an error occurs while uploading the image.
      */
@@ -74,7 +74,7 @@ public class ProductService {
             String productName,
             String description,
             BigDecimal price,
-            Integer stock,
+            Integer available_quantity,
             MultipartFile imageFile) {
         try {
             // Store image in Cloudinary and get the image link
@@ -87,7 +87,8 @@ public class ProductService {
                 product.setPrice(price);
                 product.setProductImage(imageURL);
                 product.setDescription(description);
-                product.setStock(stock);
+                product.setAvailable_quantity(available_quantity);
+                product.setReserved_quantity(0);
 
                 // Save the product to the database
                 Product savedProduct = productRepo.save(product);
@@ -153,7 +154,7 @@ public class ProductService {
             // Fetch the product by ID from the database
             Optional<Product> product = productRepo.findById(prodId);
 
-            System.out.println("Here"+price);
+            System.out.println("Here" + price);
             // Check if the product exists
             if (product.isPresent()) {
                 Product existingProduct = product.get();
@@ -169,13 +170,13 @@ public class ProductService {
                 }
 
                 // Update price if provided
-                if (price != null ) {
+                if (price != null) {
                     existingProduct.setPrice(price);
                 }
 
                 // Update stock if provided
                 if (stock != null) {
-                    existingProduct.setStock(stock);
+                    existingProduct.setAvailable_quantity(stock);
                 }
 
                 // Update product image if a new image file is provided

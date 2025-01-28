@@ -31,22 +31,13 @@ public class Product {
     private BigDecimal price;  // Price of the product
 
     @NotNull(message = "Product Name cannot Be Empty")  // Validation annotation for non-null
-    private Integer stock;  // Stock quantity of the product
+    private Integer availableQuantity;  // Stock quantity of the product
+
+    @Column(nullable = true)
+    private Integer reservedQuantity;
 
     private LocalDateTime createdAt;  // Timestamp for when the product is created
     private LocalDateTime updatedAt;  // Timestamp for when the product is last updated
-
-    // Constructor initializing all fields
-    public Product(String productImage, Integer id, String productName, String description, BigDecimal price, Integer stock, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        Id = id;
-        ProductName = productName;
-        Description = description;
-        this.price = price;
-        this.productImage = productImage;
-        this.stock = stock;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
 
     // Default constructor
     public Product() {
@@ -68,6 +59,22 @@ public class Product {
     // Getter and setter methods for each field
     public Integer getId() {
         return Id;
+    }
+
+    public Integer getAvailable_quantity() {
+        return availableQuantity;
+    }
+
+    public void setAvailable_quantity(Integer available_quantity) {
+        this.availableQuantity = available_quantity;
+    }
+
+    public Integer getReserved_quantity() {
+        return reservedQuantity;
+    }
+
+    public void setReserved_quantity(Integer reserved_quantity) {
+        this.reservedQuantity = reserved_quantity;
     }
 
     public void setId(Integer id) {
@@ -98,13 +105,6 @@ public class Product {
         this.price = price;
     }
 
-    public Integer getStock() {
-        return stock;
-    }
-
-    public void setStock(Integer stock) {
-        this.stock = stock;
-    }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
@@ -122,7 +122,23 @@ public class Product {
         this.updatedAt = updatedAt;
     }
 
-    // Override toString method to provide a string representation of the product
+    public String getProductImage() {
+        return productImage;
+    }
+
+    public void setProductImage(String productImage) {
+        this.productImage = productImage;
+    }
+
+    public Product(String productName, String description, String productImage, BigDecimal price, Integer available_quantity, Integer reserved_quantity) {
+        ProductName = productName;
+        Description = description;
+        this.productImage = productImage;
+        this.price = price;
+        this.availableQuantity = available_quantity;
+        this.reservedQuantity = reserved_quantity;
+    }
+
     @Override
     public String toString() {
         return "Product{" +
@@ -131,17 +147,10 @@ public class Product {
                 ", Description='" + Description + '\'' +
                 ", productImage='" + productImage + '\'' +
                 ", price=" + price +
-                ", stock=" + stock +
+                ", available_quantity=" + availableQuantity +
+                ", reserved_quantity=" + reservedQuantity +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 '}';
-    }
-
-    public String getProductImage() {
-        return productImage;
-    }
-
-    public void setProductImage(String productImage) {
-        this.productImage = productImage;
     }
 }

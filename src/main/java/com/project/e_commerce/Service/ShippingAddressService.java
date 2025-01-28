@@ -40,6 +40,7 @@ public class ShippingAddressService {
         shippingAddress1.setCountry(shippingAddress.getCountry());
         shippingAddress1.setCity(shippingAddress.getCity());
         shippingAddress1.setPostalCode(shippingAddress.getPostalCode());
+        shippingAddress1.setPhoneNo(shippingAddress.getPhoneNo());
         shippingAddress1.setUser(user.get());
 
         ShippingAddress savedShippingAddress = shippingAddressRepo.save(shippingAddress1);
@@ -65,6 +66,8 @@ public class ShippingAddressService {
             shippingAddress1.get().setCity(shippingAddress.getCity());
             shippingAddress1.get().setPostalCode(shippingAddress.getPostalCode());
             shippingAddress1.get().setCountry(shippingAddress.getCountry());
+            shippingAddress1.get().setPhoneNo(shippingAddress.getPhoneNo());
+
             ShippingAddress updatedShippingAddress = shippingAddressRepo.save(shippingAddress1.get());
             return new ResponseEntity<>(new ApiResponse<>(true,"Address Updated Successfully",updatedShippingAddress), HttpStatus.OK);
         }else{

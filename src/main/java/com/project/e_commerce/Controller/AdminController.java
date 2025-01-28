@@ -41,11 +41,11 @@ public class AdminController {
     /**
      * Create a new product with the given details.
      *
-     * @param product_name Name of the product.
-     * @param description  Description of the product.
-     * @param price        Price of the product.
-     * @param stock        Stock quantity of the product.
-     * @param imageFile    Image file of the product.
+     * @param product_name       Name of the product.
+     * @param description        Description of the product.
+     * @param price              Price of the product.
+     * @param available_quantity Stock quantity of the product.
+     * @param imageFile          Image file of the product.
      * @return ResponseEntity with success or failure message and HTTP status.
      * @throws IOException if an error occurs while uploading the image.
      */
@@ -54,10 +54,10 @@ public class AdminController {
             @RequestParam("product_name") String product_name,
             @RequestParam("description") String description,
             @RequestParam("price") BigDecimal price,
-            @RequestParam("stock") Integer stock,
+            @RequestParam("available_quantity") Integer available_quantity,
             @RequestParam("image") MultipartFile imageFile) {
         try {
-            return productService.createProduct(product_name, description, price, stock, imageFile);
+            return productService.createProduct(product_name, description, price, available_quantity, imageFile);
         } catch (Exception e) {
             // Handle unexpected exceptions
             return ResponseEntity.internalServerError().body(new ApiResponse<>(false, "An unexpected error occurred: " + e.getMessage(), null));

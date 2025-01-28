@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -22,7 +23,7 @@ public class OrdersTable {
     private Users user;
 
     @ManyToOne
-    @JoinColumn(name = "shipping_address_id", nullable = false)
+    @JoinColumn(name = "shipping_address_id", nullable = true)
     private ShippingAddress shippingAddress;
 
     @Column(nullable = false)
@@ -35,9 +36,6 @@ public class OrdersTable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentMethod paymentMethod;
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PaymentDetails> paymentDetails;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -53,17 +51,17 @@ public class OrdersTable {
         this.updatedAt = LocalDateTime.now();
     }
 
+
     public OrdersTable() {
     }
 
-    public OrdersTable(Users user, ShippingAddress shippingAddress, BigDecimal totalAmount, OrderStatus orderStatus, PaymentMethod paymentMethod, List<PaymentDetails> paymentDetails) {
+    public OrdersTable(Users user, ShippingAddress shippingAddress, BigDecimal totalAmount, OrderStatus orderStatus, PaymentMethod paymentMethod) {
 
         this.user = user;
         this.shippingAddress = shippingAddress;
         this.totalAmount = totalAmount;
         this.orderStatus = orderStatus;
         this.paymentMethod = paymentMethod;
-        this.paymentDetails = paymentDetails;
     }
 
     public Integer getId() {
@@ -114,13 +112,6 @@ public class OrdersTable {
         this.paymentMethod = paymentMethod;
     }
 
-    public List<PaymentDetails> getPaymentDetails() {
-        return paymentDetails;
-    }
-
-    public void setPaymentDetails(List<PaymentDetails> paymentDetails) {
-        this.paymentDetails = paymentDetails;
-    }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
@@ -140,16 +131,6 @@ public class OrdersTable {
 
     @Override
     public String toString() {
-        return "Orders{" +
-                "id=" + id +
-                ", user=" + user +
-                ", shippingAddress=" + shippingAddress +
-                ", totalAmount=" + totalAmount +
-                ", orderStatus=" + orderStatus +
-                ", paymentMethod=" + paymentMethod +
-                ", paymentDetails=" + paymentDetails +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
-                '}';
+        return "Orders{" + "id=" + id + ", user=" + user + ", shippingAddress=" + shippingAddress + ", totalAmount=" + totalAmount + ", orderStatus=" + orderStatus + ", paymentMethod=" + paymentMethod + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + '}';
     }
 }

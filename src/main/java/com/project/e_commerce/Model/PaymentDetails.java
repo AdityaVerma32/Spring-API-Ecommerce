@@ -1,6 +1,10 @@
 package com.project.e_commerce.Model;
 
+import com.project.e_commerce.Enums.OrderStatus;
+import com.project.e_commerce.Enums.PaymentMethod;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -11,8 +15,19 @@ public class PaymentDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id")
+    @NotNull
+    private String PaymentId;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod PaymentMethod;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    private OrderStatus PaymentStatus;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")  // Join column in PaymentDetails table
     private OrdersTable order;
 
     private LocalDateTime createdAt;
@@ -31,11 +46,22 @@ public class PaymentDetails {
         this.updatedAt = LocalDateTime.now();  // Updates the timestamp whenever the entity is updated
     }
 
-    public PaymentDetails(OrdersTable order) {
+    public OrdersTable getOrder() {
+        return order;
+    }
+
+    public void setOrder(OrdersTable order) {
         this.order = order;
     }
 
     public PaymentDetails() {
+    }
+
+    public PaymentDetails(String paymentId, PaymentMethod paymentMethod, OrderStatus paymentStatus, OrdersTable order) {
+        PaymentId = paymentId;
+        PaymentMethod = paymentMethod;
+        PaymentStatus = paymentStatus;
+        this.order = order;
     }
 
     public Integer getId() {
@@ -46,12 +72,28 @@ public class PaymentDetails {
         this.id = id;
     }
 
-    public OrdersTable getOrder() {
-        return order;
+    public String getPaymentId() {
+        return PaymentId;
     }
 
-    public void setOrder(OrdersTable order) {
-        this.order = order;
+    public void setPaymentId(String paymentId) {
+        PaymentId = paymentId;
+    }
+
+    public PaymentMethod getPaymentMethod() {
+        return PaymentMethod;
+    }
+
+    public void setPaymentMethod(PaymentMethod paymentMethod) {
+        PaymentMethod = paymentMethod;
+    }
+
+    public OrderStatus getPaymentStatus() {
+        return PaymentStatus;
+    }
+
+    public void setPaymentStatus(OrderStatus paymentStatus) {
+        PaymentStatus = paymentStatus;
     }
 
     public LocalDateTime getCreatedAt() {
