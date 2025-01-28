@@ -11,12 +11,11 @@ import com.project.e_commerce.Utils.ApiResponse;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Address;
-import com.stripe.model.PaymentIntent;
 import com.stripe.model.ShippingDetails;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
+import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
-import org.hibernate.query.Order;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,20 +37,28 @@ public class PaymentService {
     @Value("${stripe.secretKey}")
     private String secretKey;
 
-    private OrdersItemsRepo ordersItemsRepo;
-    private OrdersRepo ordersRepo;
-    private ShippingAddressRepo shippingAddressRepo;
-    private UserRepo userRepo;
-    private PaymentDetailsRepo paymentDetailsRepo;
-    private EmailService emailService;
+    private final OrdersItemsRepo ordersItemsRepo;
+    private final OrdersRepo ordersRepo;
+    private final ShippingAddressRepo shippingAddressRepo;
+    private final UserRepo userRepo;
+    private final PaymentDetailsRepo paymentDetailsRepo;
+    private final EmailService emailService;
+    private final ProductRepo productRepo;
+    private final CartRepo cartRepo;
+    private final CartItemsRepo cartItemsRepo;
+    private final ExpiredSessionIdRepo expiredSessionIdRepo;
 
-    public PaymentService(OrdersItemsRepo ordersItemsRepo, OrdersRepo ordersRepo, ShippingAddressRepo shippingAddressRepo, UserRepo userRepo, PaymentDetailsRepo paymentDetailsRepo, EmailService emailService) {
+    public PaymentService(OrdersItemsRepo ordersItemsRepo, OrdersRepo ordersRepo, ShippingAddressRepo shippingAddressRepo, UserRepo userRepo, PaymentDetailsRepo paymentDetailsRepo, EmailService emailService, ProductRepo productRepo, CartRepo cartRepo, CartItemsRepo cartItemsRepo, ExpiredSessionIdRepo expiredSessionIdRepo) {
         this.ordersItemsRepo = ordersItemsRepo;
         this.ordersRepo = ordersRepo;
         this.shippingAddressRepo = shippingAddressRepo;
         this.userRepo = userRepo;
         this.paymentDetailsRepo = paymentDetailsRepo;
         this.emailService = emailService;
+        this.productRepo = productRepo;
+        this.cartRepo = cartRepo;
+        this.cartItemsRepo = cartItemsRepo;
+        this.expiredSessionIdRepo = expiredSessionIdRepo;
     }
 
     private Integer getUserId() {
@@ -110,29 +117,30 @@ public class PaymentService {
     }
 
     @Transactional
-    public ResponseEntity<?> saveOrderData(PaymentSuccessRequest paymentSuccessRequest) {
-        try {
-            Stripe.apiKey = secretKey;
+    public ResponseEntity<?> saveOrderData(PaymentSuccessRequest paymentSuccessRequest) throws StripeException, MessagingException {
 
-            // Fetch session details from the Request
-            Session session = Session.retrieve(paymentSuccessRequest.getSessionId());
-            // Extract Order ID from the Session ID
-            String orderId = session.getMetadata().get("OrderId");
-            Optional<Users> user = userRepo.findById(getUserId());
-            Optional<OrdersTable> order = ordersRepo.findById(valueOf(orderId));
-            // Extraxt Payment Status from the Session ID
-            String paymentStatus = session.getPaymentStatus();
+        Stripe.apiKey = secretKey;
+        String requestSessionId = paymentSuccessRequest.getSessionId();
+        ExpiredSessionId expiredSessionId = expiredSessionIdRepo.findBySessionId(requestSessionId);
+
+        // Fetch session details from the Request
+        Session session = Session.retrieve(requestSessionId);
+        // Extract Order ID from the Session ID
+        String orderId = session.getMetadata().get("OrderId");
+        Optional<Users> user = userRepo.findById(getUserId());
+        Optional<OrdersTable> order = ordersRepo.findById(valueOf(orderId));
+        List<OrdersItems> ordersItems = ordersItemsRepo.findByOrders(order.get());
+
+        if (expiredSessionId == null) {
+
             // Extract the Payment Intent id from the Session id which will be used to store the payment Details
             String paymentIntentId = session.getPaymentIntent();
-            // Extract Payment Intent
-            PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
 
             // Extract Shipping Address
             ShippingDetails address = session.getShippingDetails();
-            Address stripeAddress = null;
-            if (address != null) {
-                stripeAddress = address.getAddress();
-            }
+            Address stripeAddress = address.getAddress();
+            String PhoneNo = address.getPhone();
+
             // Inserting Shipping Address Details in the DB.
             ShippingAddress shippingAddress = new ShippingAddress();
             shippingAddress.setStreet(stripeAddress.getLine1());
@@ -141,6 +149,9 @@ public class PaymentService {
             shippingAddress.setState(stripeAddress.getState());
             shippingAddress.setPostalCode(stripeAddress.getPostalCode());
             shippingAddress.setUser(user.get());
+            if (PhoneNo != null) {
+                shippingAddress.setPhoneNo(PhoneNo);
+            }
             ShippingAddress savedAddress = shippingAddressRepo.save(shippingAddress);
 
             // Inserting Payment details into the DB.
@@ -157,14 +168,34 @@ public class PaymentService {
             order.get().setPaymentMethod(PaymentMethod.STRIPE);
             OrdersTable updatedOrder = ordersRepo.save(order.get());
 
+            // Now, we will change the Reserved Quantity
+            for (OrdersItems item : ordersItems) {
+                Product product = item.getProduct();
+                product.setReserved_quantity(product.getReserved_quantity() - item.getQuantity());
+                productRepo.save(product);
+            }
+
+            // Delete the Items from the Cart and Cart Items.
+            Cart cart = cartRepo.findByOrderId(updatedOrder.getId());
+            List<CartItems> cartItems = cartItemsRepo.findByCart(cart);
+            for (CartItems items : cartItems) {
+                cartItemsRepo.delete(items);
+            }
+            cartRepo.delete(cart);
+
             emailService.sendOrderSuccessFullEmail(user.get().getEmail(), user.get().getFirstName(), updatedOrder);
             List<OrdersItems> order_items = ordersItemsRepo.findByOrders(updatedOrder);
 
+            ExpiredSessionId savedExpiredSessionId = new ExpiredSessionId(requestSessionId);
+            expiredSessionIdRepo.save(savedExpiredSessionId);
+
             // Return session details as a response
             return new ResponseEntity<>(new ApiResponse<>(true, "Order Placed Successfully.", order_items), HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error fetching session details: " + e.getMessage());
+        } else {
+            return new ResponseEntity<>(new ApiResponse<>(true, "Order Placed Successfully.", ordersItems), HttpStatus.OK);
         }
+
+
     }
 
 }

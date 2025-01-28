@@ -3,6 +3,8 @@ package com.project.e_commerce.Controller;
 import com.project.e_commerce.DTO.PaymentDTO;
 import com.project.e_commerce.DTO.PaymentSuccessRequest;
 import com.project.e_commerce.Service.PaymentService;
+import com.stripe.exception.StripeException;
+import jakarta.mail.MessagingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,9 +23,8 @@ public class PaymentController {
     }
 
     @PostMapping("saveOrderData")
-    public ResponseEntity<?> saveOrderData(@RequestBody PaymentSuccessRequest paymentSuccessRequest){
+    public ResponseEntity<?> saveOrderData(@RequestBody PaymentSuccessRequest paymentSuccessRequest) throws StripeException, MessagingException {
         return paymentService.saveOrderData(paymentSuccessRequest);
-//        return new ResponseEntity<>("Got the Session ID: "+session_id, HttpStatus.OK);
     }
 
 }

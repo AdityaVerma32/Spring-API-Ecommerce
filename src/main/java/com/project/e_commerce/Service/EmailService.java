@@ -2,9 +2,13 @@ package com.project.e_commerce.Service;
 
 import com.project.e_commerce.Model.OrdersTable;
 import com.project.e_commerce.Model.ShippingAddress;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
 
 /**
  * Service class responsible for handling email operations.
@@ -17,6 +21,7 @@ public class EmailService {
 
     /**
      * Constructor to initialize JavaMailSender.
+     *
      * @param javaMailSender Injected JavaMailSender bean.
      */
     public EmailService(JavaMailSender javaMailSender) {
@@ -26,7 +31,7 @@ public class EmailService {
     /**
      * Sends a registration confirmation email to the user.
      *
-     * @param to      The recipient's email address.
+     * @param to       The recipient's email address.
      * @param username The username or name of the recipient.
      */
     public void sendRegistrationEmail(String to, String username) {
@@ -48,17 +53,16 @@ public class EmailService {
         javaMailSender.send(message);
     }
 
-    public void sendOrderSuccessFullEmail(String to, String username, OrdersTable orders){
-        // Create a simple email message
-        SimpleMailMessage message = new SimpleMailMessage();
+    public void sendOrderSuccessFullEmail(String to, String username, OrdersTable orders) throws MessagingException {
 
-        // Set the recipient's email address
-        message.setTo(to);
+        MimeMessage mimeMessage = javaMailSender.createMimeMessage();
 
-        // Set the subject of the email
-        message.setSubject("Order Successfully Placed");
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-        // Get the shipping address from the order object
+        helper.setTo(to);
+
+        helper.setSubject("Order Placed Successfully");
+
         ShippingAddress shippingAddress = orders.getShippingAddress();
 
         // Create a visually appealing email body with HTML content
@@ -91,11 +95,11 @@ public class EmailService {
                 + "</body>"
                 + "</html>";
 
-        // Set the email text as HTML content
-        message.setText(emailContent);
+        // Set the email body as HTML content
+        helper.setText(emailContent, true); // 'true' indicates HTML content
 
         // Send the email
-        javaMailSender.send(message);
+        javaMailSender.send(mimeMessage);
     }
 
 
