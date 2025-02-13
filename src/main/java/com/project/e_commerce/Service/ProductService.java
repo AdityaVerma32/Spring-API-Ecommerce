@@ -148,7 +148,7 @@ public class ProductService {
             String productName,
             String description,
             BigDecimal price,
-            Integer stock,
+            Integer available_quantity,
             MultipartFile imageFile) {
         try {
             // Fetch the product by ID from the database
@@ -175,8 +175,8 @@ public class ProductService {
                 }
 
                 // Update stock if provided
-                if (stock != null) {
-                    existingProduct.setAvailable_quantity(stock);
+                if (available_quantity != null) {
+                    existingProduct.setAvailable_quantity(available_quantity);
                 }
 
                 // Update product image if a new image file is provided

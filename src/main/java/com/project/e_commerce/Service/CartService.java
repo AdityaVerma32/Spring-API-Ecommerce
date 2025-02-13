@@ -335,13 +335,13 @@ public class CartService {
 
     private void deleteProductFromCart(Cart cart, CartItems cartItems, Product product){
         BigDecimal change_price = cartItems.getPrice().multiply(new BigDecimal(cartItems.getQuantity()));
-        updateCartTotal(cart,change_price);
+        cart.setTotalPrice(cart.getTotalPrice().subtract(change_price));
         cartItemsRepo.delete(cartItems);
     }
 
     private void deleteProductFromOrder(OrdersTable existingOrder,OrdersItems ordersItems,Product product){
         BigDecimal change_price = ordersItems.getPrice().multiply(new BigDecimal(ordersItems.getQuantity()));
-        updateOrderTotal(existingOrder,change_price);
+        existingOrder.setTotalAmount(existingOrder.getTotalAmount().subtract(change_price));
         ordersItemsRepo.delete(ordersItems);
     }
 

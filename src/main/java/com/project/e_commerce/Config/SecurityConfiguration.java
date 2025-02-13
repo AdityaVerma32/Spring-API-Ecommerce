@@ -42,7 +42,7 @@ public class SecurityConfiguration {
                         .requestMatchers("auth/register", "auth/login", "auth/google", "/products/**").permitAll()
 
                         // User-Specific Endpoints (Authentication Required)
-                        .requestMatchers( "/orders/**", "/shipping/**","/cart/**","/stripe/**","/payment/saveOrderData").hasRole("USER")
+                        .requestMatchers( "/orders/**", "/shipping/**","/cart/**","/stripe/**","/payment/saveOrderData","/user/**").hasRole("USER")
 
                         // Admin-Specific Endpoints (Authentication & Role Required)
                         .requestMatchers("/admin/**").hasRole("ADMIN")

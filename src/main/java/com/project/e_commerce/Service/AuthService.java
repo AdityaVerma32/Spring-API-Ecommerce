@@ -39,15 +39,20 @@ public class AuthService {
     public ResponseEntity<ApiResponse<Users>> registerUser(Users user) {
         try {
             // Encrypt the user's password before saving
-            System.out.println(user.toString());
-            user.setPassword(encoder.encode(user.getPassword()));
-            Users savedUser = userRepo.save(user);  // Save user to the repository
 
-            emailService.sendRegistrationEmail(savedUser.getEmail(), savedUser.getFirstName());
+            Users existingUser = userRepo.findByEmail(user.getEmail());
+            if(existingUser == null){
+                user.setPassword(encoder.encode(user.getPassword()));
+                Users savedUser = userRepo.save(user);  // Save user to the repository
 
-            ApiResponse apiResponse = new ApiResponse(true,"Registration Successfully",savedUser);
+                emailService.sendRegistrationEmail(savedUser.getEmail(), savedUser.getFirstName());
 
-            return new ResponseEntity<>(apiResponse, HttpStatus.OK);
+                ApiResponse apiResponse = new ApiResponse(true,"Registration Successfully",savedUser);
+
+                return new ResponseEntity<>(apiResponse, HttpStatus.CREATED);
+            }else{
+                return new ResponseEntity<>(new ApiResponse<>(false, "Email already Registered.",null),HttpStatus.CONFLICT);
+            }
         } catch (Exception e) {
             // Catch any exception and send a bad request response
             ApiResponse apiResponse = new ApiResponse(false,"Error during registration: " + e.getMessage(),null);

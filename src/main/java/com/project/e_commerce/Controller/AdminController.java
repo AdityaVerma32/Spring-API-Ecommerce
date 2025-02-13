@@ -101,12 +101,12 @@ public class AdminController {
                                                              @RequestParam(value = "product_name", required = false) String product_name,
                                                              @RequestParam(value = "description", required = false) String description,
                                                              @RequestParam(value = "price", required = false) BigDecimal price,
-                                                             @RequestParam(value = "stock", required = false) Integer stock,
+                                                             @RequestParam(value = "available_quantity", required = false) Integer available_quantity,
                                                              @RequestParam(value = "image", required = false) MultipartFile imageFile) {
 
         System.out.println("Debug1 " + price);
         try {
-            return productService.updateProduct(prodId, product_name, description, price, stock, imageFile);
+            return productService.updateProduct(prodId, product_name, description, price, available_quantity, imageFile);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(new ApiResponse<>(false, "An unexpected error occurred: " + e.getMessage(), null));
         }
